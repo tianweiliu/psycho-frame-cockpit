@@ -57,7 +57,7 @@
  <HintPath>C:/Program Files (x86)/Unity/Editor/Data/UnityExtensions/Unity/GUISystem/4.6.2/UnityEngine.UI.dll</HintPath>
  </Reference>
  <Reference Include="Ventuz.OSC">
- <HintPath>C:/Users/tianwei1/Documents/GitHub/psycho-frame-cockpit/source/PsychoFrame-Unity/Assets/Ventuz.OSC/Ventuz.OSC.dll</HintPath>
+ <HintPath>C:/Users/xinn/Desktop/Project_PsychoFrame/psycho-frame-cockpit/source/PsychoFrame-Unity/Assets/Ventuz.OSC/Ventuz.OSC.dll</HintPath>
  </Reference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
