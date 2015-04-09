@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using Kinect = Windows.Kinect;
 using System.Xml;
 
-public class PointmanScript : MonoBehaviour
+public class PointmanMergeScript : MonoBehaviour
 {
 
     public BodySourceManager _BodyManager;
@@ -53,11 +53,8 @@ public class PointmanScript : MonoBehaviour
     public bool localMotion;
 
 
-    public int[] TrackNumber;
-    public int debugIndex;
-
-    public List<Kinect.Body> _AvaliableBody;
-    public Dictionary<Kinect.JointType, Kinect.JointType> _BoneMap = new Dictionary<Kinect.JointType, Kinect.JointType>()
+    private List<Kinect.Body> _AvaliableBody;
+    private Dictionary<Kinect.JointType, Kinect.JointType> _BoneMap = new Dictionary<Kinect.JointType, Kinect.JointType>()
     {
         { Kinect.JointType.FootLeft, Kinect.JointType.AnkleLeft },
         { Kinect.JointType.AnkleLeft, Kinect.JointType.KneeLeft },
@@ -229,21 +226,18 @@ public class PointmanScript : MonoBehaviour
         float rotAngle = Vector3.Angle(deltaVec, calibrateOrigin.right);
         float rotDir = Vector3.Dot(deltaVec, calibrateOrigin.forward) > 0 ? 1 : -1;
 
-        pointManRoot.localRotation = Quaternion.Euler(0, rotAngle * rotDir, 0);
+        pointManRoot.rotation = Quaternion.Euler(0, rotAngle * rotDir, 0);
     }
 
     private void RefreshBodyObject(Kinect.Body body)
     {
-        //TrackNumber[BodyIndex] = 0;
 
         Vector3 localDelta = Vector3.zero;
-        Vector3 targetPosition = Vector3.zero;
         if (localMotion)
         {
             Kinect.Joint rootJoint = body.Joints[Kinect.JointType.SpineBase];
             Vector3 rootPosition = GetVector3FromJoint(rootJoint);
             localDelta = rootPosition - pointManRoot.position;
-            
         }
 
         for (Kinect.JointType jt = Kinect.JointType.SpineBase; jt <= Kinect.JointType.ThumbRight; jt++)
@@ -257,13 +251,10 @@ public class PointmanScript : MonoBehaviour
             Kinect.Joint sourceJoint = body.Joints[jt];
             Kinect.Joint targetJoint = null;
 
-
-
             GameObject pointObj = JointToGameObject(jt);
-            GameObject targetJointObj = null;
+            pointObj.transform.localPosition = GetVector3FromJoint(sourceJoint);
             LineRenderer lr = pointObj.GetComponent<LineRenderer>();
 
-            
             if (sourceJoint.TrackingState != Kinect.TrackingState.Tracked)
             {
                 pointObj.SetActive(false);
@@ -274,19 +265,13 @@ public class PointmanScript : MonoBehaviour
             {
                 pointObj.SetActive(true);
                 lr.enabled = true;
-                //TrackNumber[BodyIndex]++;
             }
-            
-
-            pointObj.transform.localPosition = GetVector3FromJoint(sourceJoint);
-            
 
             if (_BoneMap.ContainsKey(jt))
             {
                 targetJoint = body.Joints[_BoneMap[jt]];
-                targetJointObj = JointToGameObject(_BoneMap[jt]);
             }
-            
+
 
             if (localMotion)
             {
@@ -301,27 +286,31 @@ public class PointmanScript : MonoBehaviour
                 _RecordWriter.WriteElementString("TrackState", sourceJoint.TrackingState.ToString());
             }
 
-            
             if (EnableRotation && targetJoint != null)
             {
                 pointObj.transform.rotation = Quaternion.LookRotation((GetVector3FromJoint(targetJoint) - pointObj.transform.localPosition).normalized);
             }
-            
-           
-            
+
+
+
             if (targetJoint != null)
             {
                 lr.SetPosition(0, pointObj.transform.position);
-                
-       
                 if (!localMotion)
                 {
                     lr.SetPosition(1, GetVector3FromJoint(targetJoint));
                 }
                 else
                 {
-                    lr.SetPosition(1, targetJointObj.transform.position);
-                 
+                    Vector3 targetPosition;
+                    if (targetJoint != null)
+                    {
+                        targetPosition = JointToGameObject(_BoneMap[jt]).transform.position;
+                    }
+                    else
+                    {
+                        lr.SetPosition(1, pointObj.transform.position);
+                    }
                 }
                 //lr.SetColors(GetColorForState(sourceJoint.TrackingState), GetColorForState(targetJoint.TrackingState));
             }
@@ -329,19 +318,11 @@ public class PointmanScript : MonoBehaviour
             {
                 lr.enabled = false;
             }
-            
+
 
             if (OnRecord)
             {
                 _RecordWriter.WriteEndElement();
-            }
-
-            if (calibrateLocation)
-            {
-                GameObject left = JointToGameObject(Kinect.JointType.ShoulderLeft);
-                GameObject right = JointToGameObject(Kinect.JointType.ShoulderRight);
-
-                Debug.DrawLine(left.transform.position, right.transform.position);
             }
 
         }
@@ -349,6 +330,7 @@ public class PointmanScript : MonoBehaviour
 
     private void CalibrateRootRep(Vector3 leftShoulder, Vector3 rightShoulder)
     {
+        //print("Shoulder Data " + leftShoulder + ", " + rightShoulder);
         Vector3 localLeft = leftShoulder;
         Vector3 localRight = rightShoulder;
 
@@ -359,6 +341,8 @@ public class PointmanScript : MonoBehaviour
         float rotDir = Vector3.Dot(deltaVec.normalized, calibrateOrigin.forward) > 0 ? 1 : -1;
 
         pointManRoot.rotation = Quaternion.Euler(0, rotAngle * rotDir, 0);
+
+        //print("Rotate Root to " + new Vector3(0, rotAngle * rotDir, 0));
     }
 
     private void ReplayBodyObject()
@@ -432,12 +416,6 @@ public class PointmanScript : MonoBehaviour
                         targetPosition = targetJointObj.transform.position;
                     }
                 }
-                else {
-                    if (targetJointObj)
-                    {
-                        targetPosition = targetJointObj.transform.position;
-                    }
-                }
 
 
                 LineRenderer lr = pointObj.GetComponent<LineRenderer>();
@@ -472,7 +450,7 @@ public class PointmanScript : MonoBehaviour
         return new Vector3(joint.Position.x * 10, joint.Position.y * 10, joint.Position.z * 10);
     }
 
-    public GameObject JointToGameObject(Kinect.JointType joint)
+    private GameObject JointToGameObject(Kinect.JointType joint)
     {
         switch (joint)
         {
@@ -558,18 +536,5 @@ public class PointmanScript : MonoBehaviour
         yF = float.Parse(y);
         zF = float.Parse(z);
         return new Vector3(xF, yF, zF);
-    }
-
-    void OnGUI(){
-        //GUI.Label(new Rect(10, 10 + 50 * debugIndex, 200,40), "Body "+debugIndex+" Valid Count:" + TrackNumber[BodyIndex]);
-    }
-
-    public void RotateBack() {
-        pointManRoot.transform.rotation = Quaternion.Euler(0,180,0);
-    }
-
-    public void RotateFront()
-    {
-        pointManRoot.transform.rotation = Quaternion.Euler(0, 0, 0);
     }
 }
