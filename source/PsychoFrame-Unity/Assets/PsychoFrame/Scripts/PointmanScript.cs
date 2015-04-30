@@ -49,8 +49,10 @@ public class PointmanScript : MonoBehaviour
     public bool calibrateLocation;
     public Transform calibrateOrigin;
     public Transform pointManRoot;
+    public Transform superParent;
 
     public bool localMotion;
+    public bool hideLocal;
 
 
     public int[] TrackNumber;
@@ -234,7 +236,7 @@ public class PointmanScript : MonoBehaviour
 
     private void RefreshBodyObject(Kinect.Body body)
     {
-        //TrackNumber[BodyIndex] = 0;
+        TrackNumber[BodyIndex] = 0;
 
         Vector3 localDelta = Vector3.zero;
         Vector3 targetPosition = Vector3.zero;
@@ -263,18 +265,21 @@ public class PointmanScript : MonoBehaviour
             GameObject targetJointObj = null;
             LineRenderer lr = pointObj.GetComponent<LineRenderer>();
 
-            
-            if (sourceJoint.TrackingState != Kinect.TrackingState.Tracked)
-            {
-                pointObj.SetActive(false);
+
+            if (hideLocal) {
+                pointObj.renderer.enabled = false;
                 lr.enabled = false;
-                continue;
+            }
+            else if (sourceJoint.TrackingState != Kinect.TrackingState.Tracked)
+            {
+                pointObj.renderer.enabled = false;
+                lr.enabled = false;
             }
             else
             {
-                pointObj.SetActive(true);
+                pointObj.renderer.enabled = true;
                 lr.enabled = true;
-                //TrackNumber[BodyIndex]++;
+                TrackNumber[BodyIndex]++;
             }
             
 
@@ -561,15 +566,15 @@ public class PointmanScript : MonoBehaviour
     }
 
     void OnGUI(){
-        //GUI.Label(new Rect(10, 10 + 50 * debugIndex, 200,40), "Body "+debugIndex+" Valid Count:" + TrackNumber[BodyIndex]);
+        GUI.Label(new Rect(10, 10 + 50 * debugIndex, 200,40), "Body "+debugIndex+" Valid Count:" + TrackNumber[BodyIndex]);
     }
 
     public void RotateBack() {
-        pointManRoot.transform.rotation = Quaternion.Euler(0,180,0);
+        superParent.transform.rotation = Quaternion.Euler(0,180,0);
     }
 
     public void RotateFront()
     {
-        pointManRoot.transform.rotation = Quaternion.Euler(0, 0, 0);
+        superParent.transform.rotation = Quaternion.Euler(0, 0, 0);
     }
 }
