@@ -59,37 +59,6 @@ public class PointmanScript : MonoBehaviour
     public int debugIndex;
 
     public List<Kinect.Body> _AvaliableBody;
-    public Dictionary<Kinect.JointType, Kinect.JointType> _BoneMap = new Dictionary<Kinect.JointType, Kinect.JointType>()
-    {
-        { Kinect.JointType.FootLeft, Kinect.JointType.AnkleLeft },
-        { Kinect.JointType.AnkleLeft, Kinect.JointType.KneeLeft },
-        { Kinect.JointType.KneeLeft, Kinect.JointType.HipLeft },
-        { Kinect.JointType.HipLeft, Kinect.JointType.SpineBase },
-        
-        { Kinect.JointType.FootRight, Kinect.JointType.AnkleRight },
-        { Kinect.JointType.AnkleRight, Kinect.JointType.KneeRight },
-        { Kinect.JointType.KneeRight, Kinect.JointType.HipRight },
-        { Kinect.JointType.HipRight, Kinect.JointType.SpineBase },
-        
-        { Kinect.JointType.HandTipLeft, Kinect.JointType.HandLeft },
-        { Kinect.JointType.ThumbLeft, Kinect.JointType.HandLeft },
-        { Kinect.JointType.HandLeft, Kinect.JointType.WristLeft },
-        { Kinect.JointType.WristLeft, Kinect.JointType.ElbowLeft },
-        { Kinect.JointType.ElbowLeft, Kinect.JointType.ShoulderLeft },
-        { Kinect.JointType.ShoulderLeft, Kinect.JointType.SpineShoulder },
-        
-        { Kinect.JointType.HandTipRight, Kinect.JointType.HandRight },
-        { Kinect.JointType.ThumbRight, Kinect.JointType.HandRight },
-        { Kinect.JointType.HandRight, Kinect.JointType.WristRight },
-        { Kinect.JointType.WristRight, Kinect.JointType.ElbowRight },
-        { Kinect.JointType.ElbowRight, Kinect.JointType.ShoulderRight },
-        { Kinect.JointType.ShoulderRight, Kinect.JointType.SpineShoulder },
-        
-        { Kinect.JointType.SpineBase, Kinect.JointType.SpineMid },
-        { Kinect.JointType.SpineMid, Kinect.JointType.SpineShoulder },
-        { Kinect.JointType.SpineShoulder, Kinect.JointType.Neck },
-        { Kinect.JointType.Neck, Kinect.JointType.Head },
-    };
 
     private XmlWriter _RecordWriter;
     private XmlDocument _RecordReader;
@@ -286,10 +255,10 @@ public class PointmanScript : MonoBehaviour
             pointObj.transform.localPosition = GetVector3FromJoint(sourceJoint);
             
 
-            if (_BoneMap.ContainsKey(jt))
+            if (Kinect.JointMap._BoneMap.ContainsKey(jt))
             {
-                targetJoint = body.Joints[_BoneMap[jt]];
-                targetJointObj = JointToGameObject(_BoneMap[jt]);
+                targetJoint = body.Joints[Kinect.JointMap._BoneMap[jt]];
+                targetJointObj = JointToGameObject(Kinect.JointMap._BoneMap[jt]);
             }
             
 
@@ -402,11 +371,11 @@ public class PointmanScript : MonoBehaviour
             XmlNode targetJoint = null;
             GameObject targetJointObj = null;
 
-            if (_BoneMap.ContainsKey(jt))
+            if (Kinect.JointMap._BoneMap.ContainsKey(jt))
             {
-                Kinect.JointType targetJointType = _BoneMap[jt];
+                Kinect.JointType targetJointType = Kinect.JointMap._BoneMap[jt];
                 targetJoint = currentFrame["jt" + ((int)targetJointType).ToString()];
-                targetJointObj = JointToGameObject(_BoneMap[jt]);
+                targetJointObj = JointToGameObject(Kinect.JointMap._BoneMap[jt]);
             }
 
 

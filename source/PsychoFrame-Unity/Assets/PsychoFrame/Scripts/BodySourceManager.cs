@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using Kinect = Windows.Kinect;
+using ProjectPsychoFrame;
 
 public class BodySourceManager : MonoBehaviour
 {

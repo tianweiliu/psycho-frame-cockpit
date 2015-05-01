@@ -3,11 +3,20 @@ using System.Collections;
 using System.Collections.Generic;
 using Kinect = Windows.Kinect;
 
-public class PointmanCalibrator : MonoBehaviour {
+public class PointmanCalibrator : MonoBehaviour
+{
+
+    public bool flipX;
+    public bool flipZ;
+
+    public bool hideLocal;
+
     public PointmanScript[] m_Cameras;
-    public float[] m_CameraAngles; 
+    public float[] m_CameraAngles;
     public int m_MainCameraIndex;
 
+    public Kinect.Body FusedBody;
+    public Kinect.Body RelativeFusedBody;
 
     public GameObject FootLeft;
     public GameObject AnkleLeft;
@@ -40,109 +49,126 @@ public class PointmanCalibrator : MonoBehaviour {
     public GameObject Head;
 
 
-    Kinect.Body[] m_Bodies;
+    List<Kinect.Body> m_Bodies;
 
-	// Use this for initialization
-	void Start () {
-        m_Bodies = new Kinect.Body[m_Cameras.Length];
-	}
-
-    public Dictionary<Kinect.JointType, Kinect.JointType> _MirrorBoneMap = new Dictionary<Kinect.JointType, Kinect.JointType>()
+    // Use this for initialization
+    void Start()
     {
-        { Kinect.JointType.FootLeft, Kinect.JointType.FootRight },
-        { Kinect.JointType.AnkleLeft, Kinect.JointType.AnkleRight },
-        { Kinect.JointType.KneeLeft, Kinect.JointType.KneeRight },
-        { Kinect.JointType.HipLeft, Kinect.JointType.HipRight },
-        
-        { Kinect.JointType.FootRight, Kinect.JointType.FootLeft },
-        { Kinect.JointType.AnkleRight, Kinect.JointType.AnkleLeft },
-        { Kinect.JointType.KneeRight, Kinect.JointType.KneeLeft },
-        { Kinect.JointType.HipRight, Kinect.JointType.HipLeft },
-        
-        { Kinect.JointType.HandTipLeft, Kinect.JointType.HandTipRight },
-        { Kinect.JointType.ThumbLeft, Kinect.JointType.ThumbRight },
-        { Kinect.JointType.HandLeft, Kinect.JointType.HandRight },
-        { Kinect.JointType.WristLeft, Kinect.JointType.WristRight },
-        { Kinect.JointType.ElbowLeft, Kinect.JointType.ElbowRight },
-        { Kinect.JointType.ShoulderLeft, Kinect.JointType.ShoulderRight },
-        
-        { Kinect.JointType.HandTipRight, Kinect.JointType.HandTipLeft },
-        { Kinect.JointType.ThumbRight, Kinect.JointType.ThumbLeft },
-        { Kinect.JointType.HandRight, Kinect.JointType.HandLeft },
-        { Kinect.JointType.WristRight, Kinect.JointType.WristLeft },
-        { Kinect.JointType.ElbowRight, Kinect.JointType.ElbowLeft },
-        { Kinect.JointType.ShoulderRight, Kinect.JointType.ShoulderRight },
-        
-        { Kinect.JointType.SpineBase, Kinect.JointType.SpineBase },
-        { Kinect.JointType.SpineMid, Kinect.JointType.SpineMid },
-        { Kinect.JointType.SpineShoulder, Kinect.JointType.SpineShoulder },
-        { Kinect.JointType.Neck, Kinect.JointType.Neck },
-        { Kinect.JointType.Head, Kinect.JointType.Head}
-    };
+        m_Bodies = new List<Kinect.Body>();
+        FusedBody = new Kinect.Body();
+        RelativeFusedBody = new Kinect.Body();
+    }
 
-	// Update is called once per frame
-	void Update () {
-	    // Check main camera skelenton to check if any bone is lost track
+    // Update is called once per frame
+    void Update()
+    {
+        // Check main camera skelenton to check if any bone is lost track
         int maxTrack = 0;
 
-        for(int n = 0; n < m_Cameras.Length; ++n){
-            if (maxTrack < m_Cameras[n].TrackNumber[0]) {
+        m_Bodies.Clear();
+        for (int n = 0; n < m_Cameras.Length; ++n)
+        {
+            if (maxTrack < m_Cameras[n].TrackNumber[0])
+            {
                 maxTrack = m_Cameras[n].TrackNumber[0];
                 m_MainCameraIndex = n;
             }
-            
+
             //m_Cameras[n].RotateBack();
-            m_Bodies[n] = m_Cameras[n]._AvaliableBody[0];
+            if (m_Cameras[n]._AvaliableBody.Count > 0)
+                m_Bodies.Add(m_Cameras[n]._AvaliableBody[0]);
         }
         //m_Cameras[m_MainCameraIndex].RotateFront();
 
-        CheckMainBody(m_Bodies);
-	}
+        CheckMainBody(m_Bodies.ToArray());
+    }
 
-    void CheckMainBody(Kinect.Body[] bodies) {
+    void CheckMainBody(Kinect.Body[] bodies)
+    {
+        // There is a chance that there will be no body avaliable
+        if (bodies.Length <= m_MainCameraIndex)
+        {
+            return;
+        }
+
         // Zero is always the main body
 
         for (Kinect.JointType jt = Kinect.JointType.SpineBase; jt <= Kinect.JointType.ThumbRight; jt++)
         {
+            Kinect.TrackingState trackingState = bodies[m_MainCameraIndex].Joints[jt].TrackingState;
             Kinect.Joint sourceJoint = bodies[m_MainCameraIndex].Joints[jt];
             GameObject jtObj = JointToGameObject(jt);
-
-            if (sourceJoint.TrackingState != Kinect.TrackingState.Tracked)
+            if (jtObj)
+            {
+                if (jtObj.GetComponent<Renderer>())
+                    jtObj.GetComponent<Renderer>().enabled = !hideLocal;
+                if (jtObj.GetComponent<LineRenderer>())
+                jtObj.GetComponent<LineRenderer>().enabled = !hideLocal;
+            }
+            if (sourceJoint.TrackingState != Kinect.TrackingState.Tracked && bodies.Length > 1) // When there is only one body avalible (aka. only one camera tracking), do not try to use only tracked data
             {
                 // Try replace it with tracked backups
 
                 for (int n = 0; n < bodies.Length; n++)
                 {
-                    if(n == m_MainCameraIndex){
+                    if (n == m_MainCameraIndex)
+                    {
                         continue;
                     }
-                    Kinect.Joint backupJoint = bodies[n].Joints[_MirrorBoneMap[jt]];
+                    Kinect.Joint backupJoint = bodies[n].Joints[Kinect.JointMap._MirrorBoneMap[jt]];
                     if (backupJoint.TrackingState == Kinect.TrackingState.Tracked)
                     {
                         // We can try this
-                        jtObj.transform.position = m_Cameras[n].JointToGameObject(_MirrorBoneMap[jt]).transform.position;
-                        jtObj.transform.rotation = m_Cameras[n].JointToGameObject(_MirrorBoneMap[jt]).transform.rotation;
+                        trackingState = backupJoint.TrackingState;
+                        Vector3 jointPosition = getPosition(m_Cameras[n].JointToGameObject(Kinect.JointMap._MirrorBoneMap[jt]).transform.position);
+                        Quaternion jointRotation = m_Cameras[n].JointToGameObject(Kinect.JointMap._MirrorBoneMap[jt]).transform.rotation;
+                        FusedBody.UpdateJoint(jt, jointPosition, jointRotation, trackingState);
+                        if (jtObj)
+                        {
+                            jtObj.transform.localPosition = getPosition(m_Cameras[n].JointToGameObject(Kinect.JointMap._MirrorBoneMap[jt]).transform.position);
+                            jtObj.transform.rotation = m_Cameras[n].JointToGameObject(Kinect.JointMap._MirrorBoneMap[jt]).transform.rotation;
+                        }
                     }
                 }
             }
-            else {
-                
-                jtObj.transform.position = m_Cameras[m_MainCameraIndex].JointToGameObject(jt).transform.position;
-                jtObj.transform.rotation = m_Cameras[m_MainCameraIndex].JointToGameObject(jt).transform.rotation;
+            else
+            {
+                Vector3 jointPosition = getPosition(m_Cameras[m_MainCameraIndex].JointToGameObject(jt).transform.position);
+                Quaternion jointRotation = m_Cameras[m_MainCameraIndex].JointToGameObject(jt).transform.rotation;
+                FusedBody.UpdateJoint(jt, jointPosition, jointRotation, trackingState);
+                if (jtObj)
+                {
+                    jtObj.transform.localPosition = getPosition(m_Cameras[m_MainCameraIndex].JointToGameObject(jt).transform.position);
+                    jtObj.transform.rotation = m_Cameras[m_MainCameraIndex].JointToGameObject(jt).transform.rotation;
+                }
             }
 
 
-            if (m_Cameras[0]._BoneMap.ContainsKey(jt))
+            if (Kinect.JointMap._BoneMap.ContainsKey(jt) && jtObj)
             {
                 LineRenderer lr = jtObj.GetComponent<LineRenderer>();
                 if (lr)
                 {
                     lr.SetPosition(0, jtObj.transform.position);
-                    lr.SetPosition(1, JointToGameObject(m_Cameras[0]._BoneMap[jt]).transform.position);
+                    lr.SetPosition(1, JointToGameObject(Kinect.JointMap._BoneMap[jt]).transform.position);
                 }
             }
-             
         }
+
+        for (Kinect.JointType jt = Kinect.JointType.SpineBase; jt <= Kinect.JointType.ThumbRight; jt++)
+        {
+            if (jt == Kinect.JointType.SpineBase)
+                RelativeFusedBody.UpdateJoint(jt, FusedBody.Joints[jt].Position, FusedBody.JointOrientations[jt].Orientation, FusedBody.Joints[jt].TrackingState);
+            else
+            {
+                RelativeFusedBody.UpdateJoint(jt, FusedBody.Joints[jt].Position - FusedBody.Joints[Kinect.JointMap._RadialBoneMap[jt]].Position, Quaternion.identity, FusedBody.Joints[jt].TrackingState);
+            }
+        }
+    }
+
+    Vector3 getPosition(Vector3 position)
+    {
+        return new Vector3(flipX ? -position.x : position.x, position.y, flipZ ? -position.z : position.z);
     }
 
     public GameObject JointToGameObject(Kinect.JointType joint)
@@ -209,7 +235,8 @@ public class PointmanCalibrator : MonoBehaviour {
         }
     }
 
-    void OnGUI() {
+    void OnGUI()
+    {
         //GUI.Button(new Rect(10 + Screen.width * 0.7f * m_MainCameraIndex, 10, Screen.width * 0.2f, Screen.width * 0.2f), "Main");
     }
 }
