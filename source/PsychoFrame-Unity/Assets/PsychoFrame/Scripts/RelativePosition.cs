@@ -40,7 +40,8 @@ namespace ProjectPsychoFrame
         public Kinect.JointSetting Neck;
         public Kinect.JointSetting Head;
 
-        public Kinect.Body FusedModelBody = new Kinect.Body();
+        public Kinect.Body FusedAbsoluteModelBody = new Kinect.Body(); //Absolute positions of scaled joints
+        public Kinect.Body FusedRelativeModelBody = new Kinect.Body(); //Relative positions of scaled joints
 
         Dictionary<Kinect.JointType, float> boneSize = new Dictionary<Kinect.JointType, float>();
 
@@ -68,11 +69,22 @@ namespace ProjectPsychoFrame
                         if (JointToGameObject(jt).jointGameObject)
                         {
                             if (JointToGameObject(jt).jointGameObject.transform.root != JointToGameObject(jt).jointGameObject.transform)
-                                FusedModelBody.UpdateJoint(jt, JointToGameObject(jt).jointGameObject.transform.root.rotation * pointMan.FusedBody.Joints[jt].Position + JointToGameObject(jt).jointGameObject.transform.root.position, Quaternion.identity, Kinect.TrackingState.Tracked);
+                            {
+                                FusedAbsoluteModelBody.UpdateJoint(jt,
+                                    JointToGameObject(jt).jointGameObject.transform.root.rotation * pointMan.FusedBody.Joints[jt].Position + JointToGameObject(jt).jointGameObject.transform.root.position,
+                                    Quaternion.identity, pointMan.FusedBody.Joints[jt].TrackingState);
+
+                                FusedRelativeModelBody.UpdateJoint(jt,
+                                    JointToGameObject(jt).jointGameObject.transform.root.rotation * pointMan.FusedBody.Joints[jt].Position,
+                                    Quaternion.identity, pointMan.FusedBody.Joints[jt].TrackingState);
+                            }
                             else
-                                FusedModelBody.UpdateJoint(jt, pointMan.FusedBody.Joints[jt].Position, Quaternion.identity, Kinect.TrackingState.Tracked);
+                            {
+                                FusedAbsoluteModelBody.UpdateJoint(jt, pointMan.FusedBody.Joints[jt].Position, Quaternion.identity, pointMan.FusedBody.Joints[jt].TrackingState);
+                                FusedRelativeModelBody.UpdateJoint(jt, pointMan.FusedBody.Joints[jt].Position, Quaternion.identity, pointMan.FusedBody.Joints[jt].TrackingState);
+                            }
                             if (JointToGameObject(jt).applyTransform)
-                                JointToGameObject(jt).jointGameObject.transform.position = FusedModelBody.Joints[jt].Position;
+                                JointToGameObject(jt).jointGameObject.transform.position = FusedAbsoluteModelBody.Joints[jt].Position;
                         }
                     }
                     else if (JointToGameObject(jt).jointGameObject && JointToGameObject(Kinect.JointMap._RadialBoneMap[jt]).jointGameObject && boneSize.ContainsKey(jt))
@@ -80,12 +92,66 @@ namespace ProjectPsychoFrame
                         if (pointMan.RelativeFusedBody.Joints[jt].Position.magnitude != 0)
                         {
                             //Debug.Log(pointMan.RelativeFusedBody.Joints[jt].Position.magnitude + " -> " + boneSize[jt]);
-                            FusedModelBody.UpdateJoint(jt, JointToGameObject(Kinect.JointMap._RadialBoneMap[jt]).jointGameObject.transform.root.rotation * (pointMan.RelativeFusedBody.Joints[jt].Position / pointMan.RelativeFusedBody.Joints[jt].Position.magnitude * boneSize[jt]) + FusedModelBody.Joints[Kinect.JointMap._RadialBoneMap[jt]].Position, Quaternion.identity, Kinect.TrackingState.Tracked);
+                            FusedAbsoluteModelBody.UpdateJoint(jt,
+                                JointToGameObject(Kinect.JointMap._RadialBoneMap[jt]).jointGameObject.transform.root.rotation *
+                                (pointMan.RelativeFusedBody.Joints[jt].Position / pointMan.RelativeFusedBody.Joints[jt].Position.magnitude * boneSize[jt]) +
+                                FusedAbsoluteModelBody.Joints[Kinect.JointMap._RadialBoneMap[jt]].Position,
+                                Quaternion.identity, pointMan.FusedBody.Joints[jt].TrackingState);
+
+                            FusedRelativeModelBody.UpdateJoint(jt,
+                                JointToGameObject(Kinect.JointMap._RadialBoneMap[jt]).jointGameObject.transform.root.rotation *
+                                (pointMan.RelativeFusedBody.Joints[jt].Position / pointMan.RelativeFusedBody.Joints[jt].Position.magnitude * boneSize[jt]),
+                                Quaternion.identity, pointMan.FusedBody.Joints[jt].TrackingState);
                         }
                         else
-                            FusedModelBody.UpdateJoint(jt, JointToGameObject(Kinect.JointMap._RadialBoneMap[jt]).jointGameObject.transform.root.rotation * Vector3.ClampMagnitude(pointMan.RelativeFusedBody.Joints[jt].Position, boneSize[jt]) + FusedModelBody.Joints[Kinect.JointMap._RadialBoneMap[jt]].Position, Quaternion.identity, Kinect.TrackingState.Tracked);
+                        {
+                            FusedAbsoluteModelBody.UpdateJoint(jt,
+                                JointToGameObject(Kinect.JointMap._RadialBoneMap[jt]).jointGameObject.transform.root.rotation *
+                                Vector3.ClampMagnitude(pointMan.RelativeFusedBody.Joints[jt].Position, boneSize[jt]) +
+                                FusedAbsoluteModelBody.Joints[Kinect.JointMap._RadialBoneMap[jt]].Position,
+                                Quaternion.identity, pointMan.FusedBody.Joints[jt].TrackingState);
+
+                            FusedRelativeModelBody.UpdateJoint(jt,
+                                JointToGameObject(Kinect.JointMap._RadialBoneMap[jt]).jointGameObject.transform.root.rotation *
+                                Vector3.ClampMagnitude(pointMan.RelativeFusedBody.Joints[jt].Position, boneSize[jt]),
+                                Quaternion.identity, pointMan.FusedBody.Joints[jt].TrackingState);
+                        }
                         if (JointToGameObject(jt).applyTransform)
-                            JointToGameObject(jt).jointGameObject.transform.position = FusedModelBody.Joints[jt].Position;
+                            JointToGameObject(jt).jointGameObject.transform.position = FusedAbsoluteModelBody.Joints[jt].Position;
+                    }
+                }
+            }
+        }
+
+        void OnDrawGizmos()
+        {
+            for (Kinect.JointType jt = Kinect.JointType.SpineBase; jt <= Kinect.JointType.ThumbRight; jt++)
+            {
+                if (FusedAbsoluteModelBody.Joints.ContainsKey(jt))
+                {
+                    if (JointToGameObject(jt).jointGameObject)
+                    {
+                        switch (FusedAbsoluteModelBody.Joints[jt].TrackingState)
+                        {
+                            case Kinect.TrackingState.Tracked:
+                                Gizmos.color = Color.green;
+                                break;
+                            case Kinect.TrackingState.Inferred:
+                                Gizmos.color = Color.yellow;
+                                break;
+                            case Kinect.TrackingState.NotTracked:
+                                Gizmos.color = Color.red;
+                                break;
+                        }
+                        Gizmos.DrawSphere(FusedAbsoluteModelBody.Joints[jt].Position, 0.01f);
+                        if (Kinect.JointMap._RadialBoneMap.ContainsKey(jt))
+                        {
+                            if (JointToGameObject(Kinect.JointMap._RadialBoneMap[jt]).jointGameObject)
+                            {
+                                Gizmos.color = Color.blue;
+                                Gizmos.DrawLine(FusedAbsoluteModelBody.Joints[jt].Position, FusedAbsoluteModelBody.Joints[Kinect.JointMap._RadialBoneMap[jt]].Position);
+                            }
+                        }
                     }
                 }
             }

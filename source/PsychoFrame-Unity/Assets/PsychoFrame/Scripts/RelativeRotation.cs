@@ -39,7 +39,8 @@ namespace ProjectPsychoFrame
         public GameObject Neck;
         public GameObject Head;
 
-        Dictionary<Kinect.JointType, Vector3> rotations = new Dictionary<Kinect.JointType, Vector3>();
+        Dictionary<Kinect.JointType, Vector3> initDirections = new Dictionary<Kinect.JointType, Vector3>();
+        Dictionary<Kinect.JointType, Quaternion> initRotations = new Dictionary<Kinect.JointType, Quaternion>();
 
         // Use this for initialization
         void Start()
@@ -48,7 +49,14 @@ namespace ProjectPsychoFrame
             {
                 if (JointToGameObject(jt))
                 {
-                    rotations[jt] = JointToGameObject(jt).transform.up;
+                    initRotations[jt] = JointToGameObject(jt).transform.rotation;
+                    if (Kinect.JointMap._RadialBoneMap.ContainsKey(jt))
+                    {
+                        if (JointToGameObject(Kinect.JointMap._RadialBoneMap[jt]))
+                        {
+                            initDirections[jt] = (JointToGameObject(Kinect.JointMap._RadialBoneMap[jt]).transform.position - JointToGameObject(jt).transform.position).normalized;
+                        }
+                    }
                 }
             }
         }
