@@ -7,6 +7,9 @@ namespace ProjectPsychoFrame
 {
     public class RelativeRotation : MonoBehaviour
     {
+        public Vector3 CoordinateMatch_Origin_To_Model;
+        public Vector3 CoordinateMathc_Flip;
+
         public PointmanCalibrator pointMan;
 
         public GameObject FootLeft;
@@ -60,18 +63,45 @@ namespace ProjectPsychoFrame
             {
                 for (Kinect.JointType jt = Kinect.JointType.SpineMid; jt <= Kinect.JointType.ThumbRight; jt++)
                 {
-                    if (JointToGameObject(jt) && JointToGameObject(Kinect.JointMap._RadialBoneMap[jt]))
-                    {
-                        if (JointToGameObject(Kinect.JointMap._RadialBoneMap[jt]).transform.root != JointToGameObject(Kinect.JointMap._RadialBoneMap[jt]).transform)
-                        {
-                            //Debug.Log(pointMan.RelativeFusedBody.JointOrientations[jt].Orientation.eulerAngles);
-                            Vector3 dir = pointMan.RelativeFusedBody.Joints[jt].Position;
-                            Debug.DrawRay(JointToGameObject(Kinect.JointMap._RadialBoneMap[jt]).transform.position, JointToGameObject(Kinect.JointMap._RadialBoneMap[jt]).transform.rotation * JointToGameObject(Kinect.JointMap._RadialBoneMap[jt]).transform.InverseTransformDirection(dir) * 100f, Color.red);
-                            JointToGameObject(Kinect.JointMap._RadialBoneMap[jt]).transform.localRotation = Quaternion.LookRotation(JointToGameObject(Kinect.JointMap._RadialBoneMap[jt]).transform.InverseTransformDirection(dir), Vector3.up);
-                        }
-                        else
-                            JointToGameObject(Kinect.JointMap._RadialBoneMap[jt]).transform.rotation = pointMan.RelativeFusedBody.JointOrientations[jt].Orientation;
+                    Quaternion localRotation = pointMan.JointToGameObject(jt).transform.rotation;
+                    Vector3 rotationVec = localRotation.eulerAngles;
+                    Vector3 matchRotation = Vector3.zero;
+
+                    if (CoordinateMatch_Origin_To_Model.x == 0)
+                    { matchRotation.x = rotationVec.x; }
+                    else if (CoordinateMatch_Origin_To_Model.x == 1)
+                    { matchRotation.x = rotationVec.y; }
+                    else
+                    { matchRotation.x = rotationVec.z; }
+
+                    if (CoordinateMatch_Origin_To_Model.y == 0)
+                    { matchRotation.y = rotationVec.x; }
+                    else if (CoordinateMatch_Origin_To_Model.y == 1)
+                    { matchRotation.y = rotationVec.y; }
+                    else
+                    { matchRotation.y = rotationVec.z; }
+
+                    if (CoordinateMatch_Origin_To_Model.z == 0)
+                    { matchRotation.z = rotationVec.x; }
+                    else if (CoordinateMatch_Origin_To_Model.z == 1)
+                    { matchRotation.z = rotationVec.y; }
+                    else
+                    { matchRotation.z = rotationVec.z; }
+
+
+                    if (CoordinateMathc_Flip.x < 0) {
+                        matchRotation.x += 180;
                     }
+                    if (CoordinateMathc_Flip.y < 0) {
+                        matchRotation.y += 180;
+                    }
+                    if (CoordinateMathc_Flip.z < 0) {
+                        matchRotation.z += 180;
+                    }
+
+                    localRotation = Quaternion.Euler(matchRotation);
+
+                    JointToGameObject(jt).transform.rotation = localRotation;
                 }
             }
         }

@@ -12,6 +12,7 @@ public class PointmanCalibrator : MonoBehaviour
     public bool hideLocal;
 
     public PointmanScript[] m_Cameras;
+    public GameObject[] m_CameraPosition;
     public float[] m_CameraAngles;
     public int m_MainCameraIndex;
 
@@ -80,7 +81,17 @@ public class PointmanCalibrator : MonoBehaviour
         }
         //m_Cameras[m_MainCameraIndex].RotateFront();
 
+        Transform mainTransform = m_CameraPosition[m_MainCameraIndex].transform;
+        Vector3 mainDistance = m_Cameras[m_MainCameraIndex].ToCameraDistance;
+        Vector3 mainRotation = m_Cameras[m_MainCameraIndex].FacingDirection;
+        transform.position = mainTransform.position + (mainDistance.x * mainTransform.right + mainDistance.y * mainTransform.up + mainDistance.z * mainTransform.forward);
+        transform.rotation = Quaternion.Euler(mainRotation);
+
         CheckMainBody(m_Bodies.ToArray());
+
+        if (Input.GetKeyDown(KeyCode.C)) {
+            CalibrateKinectPos();
+        }
     }
 
     void CheckMainBody(Kinect.Body[] bodies)
@@ -92,7 +103,6 @@ public class PointmanCalibrator : MonoBehaviour
         }
 
         // Zero is always the main body
-
         for (Kinect.JointType jt = Kinect.JointType.SpineBase; jt <= Kinect.JointType.ThumbRight; jt++)
         {
             Kinect.TrackingState trackingState = bodies[m_MainCameraIndex].Joints[jt].TrackingState;
@@ -105,6 +115,8 @@ public class PointmanCalibrator : MonoBehaviour
                 if (jtObj.GetComponent<LineRenderer>())
                 jtObj.GetComponent<LineRenderer>().enabled = !hideLocal;
             }
+
+
             if (sourceJoint.TrackingState != Kinect.TrackingState.Tracked && bodies.Length > 1) // When there is only one body avalible (aka. only one camera tracking), do not try to use only tracked data
             {
                 // Try replace it with tracked backups
@@ -126,7 +138,7 @@ public class PointmanCalibrator : MonoBehaviour
                         if (jtObj)
                         {
                             jtObj.transform.localPosition = getPosition(m_Cameras[n].JointToGameObject(Kinect.JointMap._MirrorBoneMap[jt]).transform.position);
-                            jtObj.transform.rotation = m_Cameras[n].JointToGameObject(Kinect.JointMap._MirrorBoneMap[jt]).transform.rotation;
+                            jtObj.transform.localRotation = m_Cameras[n].JointToGameObject(Kinect.JointMap._MirrorBoneMap[jt]).transform.rotation;
                         }
                     }
                 }
@@ -139,7 +151,7 @@ public class PointmanCalibrator : MonoBehaviour
                 if (jtObj)
                 {
                     jtObj.transform.localPosition = getPosition(m_Cameras[m_MainCameraIndex].JointToGameObject(jt).transform.position);
-                    jtObj.transform.rotation = m_Cameras[m_MainCameraIndex].JointToGameObject(jt).transform.rotation;
+                    jtObj.transform.localRotation = m_Cameras[m_MainCameraIndex].JointToGameObject(jt).transform.rotation;
                 }
             }
 
@@ -151,6 +163,11 @@ public class PointmanCalibrator : MonoBehaviour
                 {
                     lr.SetPosition(0, jtObj.transform.position);
                     lr.SetPosition(1, JointToGameObject(Kinect.JointMap._BoneMap[jt]).transform.position);
+                    // Update Rotation as well
+                    if (Kinect.JointMap._RadialBoneMap.ContainsKey(jt))
+                    {
+                        jtObj.transform.rotation = Quaternion.LookRotation((JointToGameObject(Kinect.JointMap._RadialBoneMap[jt]).transform.position - jtObj.transform.position).normalized);
+                    }
                 }
             }
         }
@@ -235,8 +252,22 @@ public class PointmanCalibrator : MonoBehaviour
         }
     }
 
+    void CalibrateKinectPos() {
+        for (int n = 0; n < m_Cameras.Length; n++) { 
+            Vector3 distance = m_Cameras[n].ToCameraDistance;
+            Vector3 rotation = m_Cameras[n].FacingDirection;
+            Transform cameraTransform = m_CameraPosition[n].transform;
+
+            m_CameraPosition[n].transform.position = transform.forward - (distance.x * cameraTransform.right + distance.y * cameraTransform.up + distance.z * cameraTransform.forward);
+        }
+    }
+
     void OnGUI()
     {
-        //GUI.Button(new Rect(10 + Screen.width * 0.7f * m_MainCameraIndex, 10, Screen.width * 0.2f, Screen.width * 0.2f), "Main");
+        if (GUI.Button(new Rect(10 + Screen.width * 0.7f * m_MainCameraIndex, 10, Screen.width * 0.2f, Screen.width * 0.2f), "Main")) {
+            CalibrateKinectPos();
+        }
+
+        
     }
 }
