@@ -11,8 +11,10 @@ public class PointmanCalibrator : MonoBehaviour
 
     public bool hideLocal;
 
+    public GameObject m_CalibrateParent;
     public PointmanScript[] m_Cameras;
     public GameObject[] m_CameraPosition;
+    public GameObject[] m_CameraTransformCalibrate;
     public float[] m_CameraAngles;
     public int m_MainCameraIndex;
 
@@ -75,17 +77,19 @@ public class PointmanCalibrator : MonoBehaviour
                 m_MainCameraIndex = n;
             }
 
-            //m_Cameras[n].RotateBack();
+            m_Cameras[n].RotateBack();
             if (m_Cameras[n]._AvaliableBody.Count > 0)
                 m_Bodies.Add(m_Cameras[n]._AvaliableBody[0]);
         }
-        //m_Cameras[m_MainCameraIndex].RotateFront();
+        m_Cameras[m_MainCameraIndex].RotateFront();
 
         Transform mainTransform = m_CameraPosition[m_MainCameraIndex].transform;
         Vector3 mainDistance = m_Cameras[m_MainCameraIndex].ToCameraDistance;
         Vector3 mainRotation = m_Cameras[m_MainCameraIndex].FacingDirection;
-        transform.position = mainTransform.position + (mainDistance.x * mainTransform.right + mainDistance.y * mainTransform.up + mainDistance.z * mainTransform.forward);
-        transform.rotation = Quaternion.Euler(mainRotation);
+        m_CalibrateParent.transform.position = mainTransform.position + (-mainDistance.x * mainTransform.right + mainDistance.y * mainTransform.up + mainDistance.z * mainTransform.forward);
+        //m_CalibrateParent.transform.forward = m_CameraTransformCalibrate[m_MainCameraIndex].transform.forward;
+        m_CalibrateParent.transform.forward = -mainTransform.forward;
+        transform.localRotation = Quaternion.Euler(mainRotation);
 
         CheckMainBody(m_Bodies.ToArray());
 
