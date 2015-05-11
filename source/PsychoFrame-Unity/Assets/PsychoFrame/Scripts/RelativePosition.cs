@@ -7,6 +7,7 @@ namespace ProjectPsychoFrame
 {
     public class RelativePosition : MonoBehaviour
     {
+        [Header("Pointman Calibrator")]
         public PointmanCalibrator pointMan;
 
         [Header("3D Model Rig Joints")]
