@@ -180,7 +180,7 @@ public class PointmanCalibrator : MonoBehaviour
         {
             if (jt == Kinect.JointType.SpineBase)
                 RelativeFusedBody.UpdateJoint(jt, FusedBody.Joints[jt].Position, FusedBody.JointOrientations[jt].Orientation, FusedBody.Joints[jt].TrackingState);
-            else
+            else if (Kinect.JointMap._RadialBoneMap.ContainsKey(jt))
             {
                 RelativeFusedBody.UpdateJoint(jt, FusedBody.Joints[jt].Position - FusedBody.Joints[Kinect.JointMap._RadialBoneMap[jt]].Position, Quaternion.identity, FusedBody.Joints[jt].TrackingState);
             }
@@ -262,7 +262,7 @@ public class PointmanCalibrator : MonoBehaviour
             Vector3 rotation = m_Cameras[n].FacingDirection;
             Transform cameraTransform = m_CameraPosition[n].transform;
 
-            m_CameraPosition[n].transform.position = transform.forward - (distance.x * cameraTransform.right + distance.y * cameraTransform.up + distance.z * cameraTransform.forward);
+            m_CameraPosition[n].transform.position = transform.position - (distance.x * cameraTransform.right + distance.y * cameraTransform.up + distance.z * cameraTransform.forward);
         }
     }
 

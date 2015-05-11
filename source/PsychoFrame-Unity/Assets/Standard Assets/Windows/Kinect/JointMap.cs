@@ -38,6 +38,7 @@ namespace Windows.Kinect
         };
         public static Dictionary<JointType, JointType> _BoneMap { get { return _boneMap; } } //So it is static and read only
 
+
         static Dictionary<JointType, JointType> _radialBoneMap = new Dictionary<JointType, JointType>()
         {
             { Kinect.JointType.FootLeft, Kinect.JointType.AnkleLeft },

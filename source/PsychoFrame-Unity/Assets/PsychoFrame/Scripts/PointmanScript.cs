@@ -222,7 +222,7 @@ public class PointmanScript : MonoBehaviour
                 GameObject left = JointToGameObject(Kinect.JointType.ShoulderLeft);
                 GameObject right = JointToGameObject(Kinect.JointType.ShoulderRight);
 
-                Debug.DrawLine(left.transform.position, right.transform.position);
+                //Debug.DrawLine(left.transform.position, right.transform.position);
             }
 
         }

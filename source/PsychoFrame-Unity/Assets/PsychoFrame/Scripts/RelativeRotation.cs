@@ -67,6 +67,12 @@ namespace ProjectPsychoFrame
         // Update is called once per frame
         void LateUpdate()
         {
+
+            /* Modified by Xin
+             * Issue: Kinect Bone has opposite direction of assigning bone direction
+             * Which makes any branch bones a real trouble
+             * Potential Solution - Invert bone direction assignment
+             */
             if (pointMan)
             {
                 for (Kinect.JointType jt = Kinect.JointType.SpineMid; jt <= Kinect.JointType.ThumbRight; jt++)
